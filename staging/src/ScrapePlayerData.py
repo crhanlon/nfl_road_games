@@ -11,19 +11,21 @@ CURRENT_FILE_DIR = 'os.path.dirname(os.path.realpath(__file__))'
 DATA_DIR = '../../data'
 FILENAME = 'qb_statistics.csv'
 OUTPUT_FILE = os.path.join(DATA_DIR, FILENAME)
-DATABASE_FILENAME = 'qb_statistics.db'
+DATABASE_FILENAME = 'nfl_road_statistics.db'
 DATABASE_PATH = os.path.join(DATA_DIR, DATABASE_FILENAME)
 conn = sqlite3.connect(DATABASE_PATH)
 print('OPENED CONNECTION')
 
+# temp_cursor = conn.cursor()
+# temp_cursor.execute('''DROP TABLE IF EXISTS qb_statistics''')
 
-# ==== Test SQL Connection =====
-def create_table():
-	CURSOR = conn.cursor()
-	CURSOR.execute('''DROP TABLE qb_statistics''')
-	CURSOR.execute('''CREATE TABLE qb_statistics
-	         (GAME_ID 	TEXT 	PRIMARY KEY,
-	         PLAYER_ID 	TEXT,
+
+# ==== Initialize Table Setup =====
+def create_qb_table():
+	cursor = conn.cursor()
+	cursor.execute('''CREATE TABLE IF NOT EXISTS qb_statistics
+	         (GAME_ID 	INT 	PRIMARY KEY,
+	         PLAYER_ID 	INT,
 	         NAME 	TEXT,
 	         AGE 	REAL,
 	         PLAYOFFS 	INT,
@@ -47,10 +49,26 @@ def create_table():
 	         PASS_YARDS_PER_ATT 	REAL,
 	         PASS_ADJ_YARDS_PER_ATTEMPT 	REAL);''')
 	conn.commit()
-	print('Created Table')
+	print('Created QB Table')
+
+
+def create_player_table():
+	pc_cursor = conn.cursor()
+	pc_cursor.execute('''CREATE TABLE IF NOT EXISTS player_info
+		(PLAYER_ID INT PRIMARY_KEY,
+		PLAYER_NAME TEXT,
+		PLAYER_URL TEXT);''')
+	conn.commit()
+	print('Created Player Table')
+
+
+def drop_all_tables():
+	drop_cursor = conn.cursor()
+	drop_cursor.execute('''DROP TABLE IF EXISTS qb_statistics''')
+	drop_cursor.execute('''DROP TABLE IF EXISTS player_info''')
+
 
 # ==== Constants =====
-
 DB_STAT_ORDER = [ 'GAME_ID', 'PLAYER_ID', 'NAME', 'AGE', 'PLAYOFFS', 'YEAR', 'DATE', 'GAME_NUM', 'TEAM', 'HOME', 'OPPONENT',
 			'RESULT', 'STARTED', 'PASS_COMPLETIONS', 'PASS_ATTEMPTS', 'PASS_COMP_PCT', 'PASS_YARDS',
          	'PASS_TD', 'PASS_INT', 'PASS_RATING', 'PASS_SACKED', 'PASS_SACKED_YARDS',
@@ -112,8 +130,28 @@ TYPE_DICT = {
 	'pass_adj_yds_per_att': float
 }
 
-# ==== ID Counters =====
 GAME_ID_NUM = -1
+PLAYER_ID_NUM = -1
+
+
+def update_ids():
+	global GAME_ID_NUM, PLAYER_ID_NUM
+	id_cursor = conn.cursor()
+	new_game_id = [cid[0] for cid in id_cursor.execute('''SELECT MAX(GAME_ID) FROM qb_statistics''')][0]
+	if new_game_id != None:
+		GAME_ID_NUM = new_game_id
+
+	new_player_id = [cid[0] for cid in id_cursor.execute('''SELECT MAX(PLAYER_ID) FROM qb_statistics''')][0]
+	if new_player_id != None:
+		PLAYER_ID_NUM = new_player_id
+
+
+def initialize_values(drop_tables=False):
+	if drop_tables:
+		drop_all_tables()
+	create_qb_table()
+	create_player_table()
+	update_ids()
 
 
 def getColumns():
@@ -123,11 +161,7 @@ def getColumns():
 	return columns
 
 
-def initializeDF():
-	df = pd.DataFrame(columns=getColumns())
-	return df
-
-
+# ==== Player Scraping Functions =====
 def isStatRow(row_items):
 	isValidRow = False
 	for elem in row_items:
@@ -158,37 +192,103 @@ def addStatToDict(col_items, text, game_dict):
 					game_dict[item[1]] = type_val(text)
 
 
-def scrapePlayerGameLogs(url, df):
-	global GAME_ID_NUM
+def get_player_name(doc):
+	h1_elems = doc.xpath('//h1')
+	for i in range(len(h1_elems)):
+		h1_elem = h1_elems[i]
+		for item in h1_elem.items():
+			if item[1] == 'name':
+				return h1_elems[i].text_content()
+	return None
+
+
+def add_player_info(player_id_num, player_name, url):
+	pi_cursor = conn.cursor()
+	statement = '''INSERT INTO player_info (PLAYER_ID, PLAYER_NAME, PLAYER_URL) VALUES (?,?,?)'''
+	values = [player_id_num, player_name, url]
+	pi_cursor.execute(statement, values)
+	conn.commit()
+
+
+def scrapePlayerGameLogs(url):
+	global GAME_ID_NUM, PLAYER_ID_NUM
+	add_player = False
 	page = requests.get(url)
 	pageText = page.text
 	doc = lh.fromstring(pageText)
+	player_name = get_player_name(doc)
 	tr_elements = doc.xpath('//tr')
 	lengths = [len(t) for t in tr_elements]
 	for i in range(len(tr_elements)):
 		tr_elem = tr_elements[i]
 		if isStatRow(tr_elem.items()):
-			GAME_ID_NUM += 1
-			game_dict = {'game_id': 'game' + str(GAME_ID_NUM), 'name': 'Phillip Rivers', 'player_id': 'player000000', 'playoffs': isPlayoffRow(tr_elem.items())}
+			game_dict = {'game_id': None, 'name': player_name, 'player_id': None, 'playoffs': isPlayoffRow(tr_elem.items())}
 			for c in tr_elem:
 				addStatToDict(c.items(), c.text_content(), game_dict)
-			key_list = list(game_dict.keys())
-			values = [game_dict[key] for key in key_list]
-			statement = '''INSERT INTO qb_statistics (%s) VALUES (%s)''' % (','.join([ID2COL[key] for key in key_list]), ','.join(['?']*len(key_list)))
-			print(statement, values)
-			new_cursor = conn.cursor()
-			new_cursor.execute(statement, values)
-			print(new_cursor.lastrowid)
-			df = df.append(game_dict, ignore_index=True)
+			print(game_dict)
+
+			if 'pass_att' in game_dict and game_dict['pass_att']:
+				if not add_player:
+					add_player = True
+					PLAYER_ID_NUM += 1
+				GAME_ID_NUM += 1
+				game_dict['game_id'] = GAME_ID_NUM
+				game_dict['player_id'] = PLAYER_ID_NUM
+
+				key_list = list(game_dict.keys())
+				values = [game_dict[key] for key in key_list]
+				statement = '''INSERT INTO qb_statistics (%s) VALUES (%s)''' % (','.join([ID2COL[key] for key in key_list]), ','.join(['?']*len(key_list)))
+				new_cursor = conn.cursor()
+				new_cursor.execute(statement, values)
+				print(new_cursor.lastrowid)
 	conn.commit()
-	return df
+	if add_player:
+		add_player_info(PLAYER_ID_NUM, player_name, url)
+
+
+def scrape_player_list(url_list):
+	for url in url_list:
+		scrapePlayerGameLogs(url)
+
+
+# ==== Year Scraping Functions =====
+def get_url_list_from_year(year_url):
+	player_url_list = []
+	page = requests.get(year_url)
+	pageText = page.text
+	doc = lh.fromstring(pageText)
+	player_name = get_player_name(doc)
+	tr_elements = doc.xpath('//tr')
+	for i in range(len(tr_elements)):
+		tr_elem = tr_elements[i]
+		print(tr_elem)
+		print(tr_elem.items())
+		print(tr_elem.text_content())
+		if len(tr_elem.items()) == 0:
+			print(tr_elem.values())
+			print(tr_elem.getchildren())
+			link_elem = tr_elem.getchildren()[1]
+			print('Link elem', link_elem)
+			print(link_elem.items())
+			print(link_elem.getchildren())
+			try:
+				print(link_elem.getchildren()[0])
+				link = link_elem.getchildren()[0]
+				print(link.items())
+				player_url = 'https://www.pro-football-reference.com' + link.items()[0][1][:-4] + '/gamelog/'
+				player_url_list.append(player_url)
+			except IndexError:
+				continue
+	return player_url_list
+
+
 
 
 
 if __name__ == '__main__':
-	df = initializeDF()
-	create_table()
-	df = scrapePlayerGameLogs('https://www.pro-football-reference.com/players/R/RivePh00/gamelog/', df)
-	# print(df)
-	# df.to_csv(OUTPUT_FILE, mode='w')
-	# df.to_csv(OUTPUT_FILE, mode='a', header=False)
+	initialize_values(drop_tables=True)
+	url_list = get_url_list_from_year('https://www.pro-football-reference.com/years/2018/passing.htm')
+	print(url_list)
+	scrape_player_list(url_list)
+	# url = 'https://www.pro-football-reference.com/players/R/RoetBe00/gamelog/'
+	# scrapePlayerGameLogs(url)
