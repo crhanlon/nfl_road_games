@@ -225,7 +225,6 @@ def scrapePlayerGameLogs(url):
 			game_dict = {'game_id': None, 'name': player_name, 'player_id': None, 'playoffs': isPlayoffRow(tr_elem.items())}
 			for c in tr_elem:
 				addStatToDict(c.items(), c.text_content(), game_dict)
-			print(game_dict)
 
 			if 'pass_att' in game_dict and game_dict['pass_att']:
 				if not add_player:
@@ -240,7 +239,8 @@ def scrapePlayerGameLogs(url):
 				statement = '''INSERT INTO qb_statistics (%s) VALUES (%s)''' % (','.join([ID2COL[key] for key in key_list]), ','.join(['?']*len(key_list)))
 				new_cursor = conn.cursor()
 				new_cursor.execute(statement, values)
-				print(new_cursor.lastrowid)
+				if int(new_cursor.lastrowid) % 100 == 0:
+					print(new_cursor.lastrowid)
 	conn.commit()
 	if add_player:
 		add_player_info(PLAYER_ID_NUM, player_name, url)
@@ -252,7 +252,17 @@ def scrape_player_list(url_list):
 
 
 # ==== Year Scraping Functions =====
-def get_url_list_from_year(year_url):
+def get_existing_url_list():
+	existing_url_list = []
+	statement = '''SELECT DISTINCT PLAYER_URL from player_info'''
+	cursor = conn.cursor()
+	url_cursor = cursor.execute(statement)
+	for url in url_cursor:
+		existing_url_list.append(url[0])
+	return existing_url_list
+
+
+def get_url_list_from_year(year_url, existing_url_list):
 	player_url_list = []
 	page = requests.get(year_url)
 	pageText = page.text
@@ -261,34 +271,33 @@ def get_url_list_from_year(year_url):
 	tr_elements = doc.xpath('//tr')
 	for i in range(len(tr_elements)):
 		tr_elem = tr_elements[i]
-		print(tr_elem)
-		print(tr_elem.items())
-		print(tr_elem.text_content())
 		if len(tr_elem.items()) == 0:
-			print(tr_elem.values())
-			print(tr_elem.getchildren())
 			link_elem = tr_elem.getchildren()[1]
-			print('Link elem', link_elem)
-			print(link_elem.items())
-			print(link_elem.getchildren())
 			try:
-				print(link_elem.getchildren()[0])
 				link = link_elem.getchildren()[0]
-				print(link.items())
 				player_url = 'https://www.pro-football-reference.com' + link.items()[0][1][:-4] + '/gamelog/'
-				player_url_list.append(player_url)
+				if player_url not in existing_url_list:
+					player_url_list.append(player_url)
 			except IndexError:
 				continue
 	return player_url_list
 
 
-
+def get_url_list_for_years(year_list):
+	year_url_list = []
+	for year in year_list:
+		year_url = 'https://www.pro-football-reference.com/years/' + str(year) + '/passing.htm'
+		year_url_list.append(year_url)
+	return year_url_list
 
 
 if __name__ == '__main__':
 	initialize_values(drop_tables=True)
-	url_list = get_url_list_from_year('https://www.pro-football-reference.com/years/2018/passing.htm')
-	print(url_list)
-	scrape_player_list(url_list)
-	# url = 'https://www.pro-football-reference.com/players/R/RoetBe00/gamelog/'
-	# scrapePlayerGameLogs(url)
+	year_list = [2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018]
+	year_url_list = get_url_list_for_years(year_list)
+	for year in year_url_list:
+		print(year)
+		existing_url_list = get_existing_url_list()
+		url_list = get_url_list_from_year(year, existing_url_list)
+		print(len(url_list))
+		scrape_player_list(url_list)
