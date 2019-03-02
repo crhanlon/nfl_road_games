@@ -7,6 +7,7 @@ from constant_values import get_passing_stat_ids, get_rushing_stat_ids, get_rece
 from scipy import stats
 from matplotlib import pyplot as plt
 import csv
+import time
 
 
 # ==== Output Files =====
@@ -59,9 +60,9 @@ def get_road_games(key_value_dict, data_type):
 
 	statement = get_sql_statement(key_value_dict, data_type)
 
-	road_qb_games = pd.read_sql_query(statement, conn)
-	print('Road QB shape: ' + str(road_qb_games.shape))
-	return road_qb_games
+	road_games = pd.read_sql_query(statement, conn)
+	print('Road games shape: ' + str(road_games.shape))
+	return road_games
 
 
 def get_home_games(key_value_dict, data_type):
@@ -71,9 +72,9 @@ def get_home_games(key_value_dict, data_type):
 	}
 	statement = get_sql_statement(key_value_dict, data_type)
 
-	home_qb_games = pd.read_sql_query(statement, conn)
-	print('Home QB shape: ' + str(home_qb_games.shape))
-	return home_qb_games
+	home_games = pd.read_sql_query(statement, conn)
+	print('Home games shape: ' + str(home_games.shape))
+	return home_games
 
 
 def get_value_distributions(road_qb_games, home_qb_games, statistic):
@@ -84,16 +85,31 @@ def get_value_distributions(road_qb_games, home_qb_games, statistic):
 
 
 # ==== Display Distribution Info =====
+def map_nan_to_val(new_val):
+	home_values = value_distribution['home_values']
+	road_values = value_distribution['road_values']
+	for i in range(len(home_values)):
+		if str(home_values[i]) == 'nan':
+			home_values[i] = new_val
+	for i in range(len(road_values)):
+		if str(road_values[i]) == 'nan':
+			road_values[i] = new_val
+
+
 def get_value_distribution_stats(value_distribution):
-	t_stat, pval = _get_2_sample_t_results(value_distribution)
+	value_dist_copy = value_distribution.copy()
+	map_nan_to_val(0)
+
+	t_stat, pval = _get_2_sample_t_results(value_dist_copy)
+
 	return {
-	'home_mean': _get_means(value_distribution)[0],
-	'road_mean': _get_means(value_distribution)[1],
-	'home_std': _get_stds(value_distribution)[0],
-	'road_std': _get_stds(value_distribution)[1],
+	'home_mean': _get_means(value_dist_copy)[0],
+	'road_mean': _get_means(value_dist_copy)[1],
+	'home_std': _get_stds(value_dist_copy)[0],
+	'road_std': _get_stds(value_dist_copy)[1],
 	't_stat': t_stat,
 	'p_val': pval,
-	'difference': _get_means(value_distribution)[0] - _get_means(value_distribution)[1]
+	'difference': _get_means(value_dist_copy)[0] - _get_means(value_dist_copy)[1]
 	}
 
 
@@ -108,7 +124,6 @@ def display_distributions(value_distribution, stat_id):
 
 # ==== Write Results =====
 def write_query_info_to_csv(csv_writer):
-	print('Writing Query Info')
 	key_value_dict = get_key_value_dict()
 	for k in key_value_dict:
 		csv_writer.writerow([k, key_value_dict[k]['operation'], key_value_dict[k]['value']])
@@ -119,7 +134,6 @@ def write_query_info_to_csv(csv_writer):
 
 
 def write_stat_to_csv(stat_vals, stat_id, csv_writer):
-	print('Writing Stat info')
 	stat_row = [stat_vals[key] for key in STAT_KEYS]
 	stat_row.insert(0, stat_id)
 	csv_writer.writerow(stat_row)
@@ -132,6 +146,10 @@ DATA_TYPE = 'passing'
 
 def get_key_value_dict():
 	return {
+	# 'RUSH_ATTEMPTS': {
+	# 'value': 5,
+	# 'operation': '>='
+	# },
 	'PASS_ATTEMPTS': {
 	'value': 10,
 	'operation': '>='
@@ -145,29 +163,32 @@ def get_key_value_dict():
 
 def get_filename(key_value_dict):
 	type_file_dir = os.path.join(DATA_DIR, 'interim', DATA_TYPE)
-	filename = ''
+	filename = DATA_TYPE + '_'
 	for key in key_value_dict:
 		filename += key + '_'
-		filename += key_value_dict[key] + '_'
-	return filename[:-1] + '.csv'
+		filename += str(key_value_dict[key]['value']) + '_'
+	return os.path.join(type_file_dir, filename[:-1] + '.csv')
 
 
 def get_stat_ids():
-	stat_ids = get_general_stat_ids()
 	if DATA_TYPE == 'passing':
-		return stat_ids.extend(get_passing_stat_ids())
+		print('returning passing')
+		return get_passing_stat_ids()
 	elif DATA_TYPE == 'rushing':
-		return stat_ids.extend(get_rushing_stat_ids())
+		print('returning rushing')
+		return get_rushing_stat_ids()
 	elif DATA_TYPE == 'receiving':
-		return stat_ids.extend(get_receiving_stat_ids())
+		print('returning receiving')
+		return get_receiving_stat_ids()
 	raise Exception('Data Type Incorrect')
 	return None
 
 
 if __name__ == '__main__':
+
 	kvd = get_key_value_dict()
 	output_file = get_filename(kvd)
-	if os.path.is_file(output_file) and not AUTOMATICALLY_OVERWRITE:
+	if os.path.isfile(output_file) and not AUTOMATICALLY_OVERWRITE:
 		raise Exception('File already exists')
 	road_qb_games = get_road_games(get_key_value_dict(), DATA_TYPE)
 	home_qb_games = get_home_games(get_key_value_dict(), DATA_TYPE)
@@ -175,8 +196,11 @@ if __name__ == '__main__':
 	csv_file = open(output_file, 'w')
 	csv_writer = csv.writer(csv_file)
 	write_query_info_to_csv(csv_writer)
-	for stat_id in get_stat_ids():
+	stat_id_list = get_stat_ids()
+	for stat_id in stat_id_list:
 		value_distribution = get_value_distributions(road_qb_games, home_qb_games, stat_id_2_sql[stat_id])
+		if type(value_distribution['home_values'][0]) == str:
+			continue
 		stat_vals = get_value_distribution_stats(value_distribution)
 		write_stat_to_csv(stat_vals, stat_id, csv_writer)
 		# display_distributions(value_distribution, stat_id)
