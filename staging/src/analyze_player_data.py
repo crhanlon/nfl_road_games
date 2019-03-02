@@ -110,10 +110,10 @@ def get_key_value_dict():
 	'value': 10,
 	'operation': '>='
 	},
-	'YEAR': {
-	'value': 2018,
-	'operation': '='
-	}
+	# 'YEAR': {
+	# 'value': 2018,
+	# 'operation': '='
+	# }
 	}
 
 # ==== Write Results =====
