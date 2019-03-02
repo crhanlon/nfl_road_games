@@ -3,7 +3,7 @@ import numpy as np
 import os
 import sqlite3
 import math
-from constant_values import get_passing_stat_ids, get_qb_stat_ids_to_sql
+from constant_values import get_passing_stat_ids, get_rushing_stat_ids, get_receiving_stat_ids, get_general_stat_ids, id_2_col
 from scipy import stats
 from matplotlib import pyplot as plt
 import csv
@@ -152,6 +152,18 @@ def get_filename(key_value_dict):
 	return filename[:-1] + '.csv'
 
 
+def get_stat_ids():
+	stat_ids = get_general_stat_ids()
+	if DATA_TYPE == 'passing':
+		return stat_ids.extend(get_passing_stat_ids())
+	elif DATA_TYPE == 'rushing':
+		return stat_ids.extend(get_rushing_stat_ids())
+	elif DATA_TYPE == 'receiving':
+		return stat_ids.extend(get_receiving_stat_ids())
+	raise Exception('Data Type Incorrect')
+	return None
+
+
 if __name__ == '__main__':
 	kvd = get_key_value_dict()
 	output_file = get_filename(kvd)
@@ -159,12 +171,12 @@ if __name__ == '__main__':
 		raise Exception('File already exists')
 	road_qb_games = get_road_games(get_key_value_dict(), DATA_TYPE)
 	home_qb_games = get_home_games(get_key_value_dict(), DATA_TYPE)
-	qb_stat_to_sql = get_qb_stat_ids_to_sql()
+	stat_id_2_sql = id_2_col()
 	csv_file = open(output_file, 'w')
 	csv_writer = csv.writer(csv_file)
 	write_query_info_to_csv(csv_writer)
-	for stat_id in get_passing_stat_ids():
-		value_distribution = get_value_distributions(road_qb_games, home_qb_games, qb_stat_to_sql[stat_id])
+	for stat_id in get_stat_ids():
+		value_distribution = get_value_distributions(road_qb_games, home_qb_games, stat_id_2_sql[stat_id])
 		stat_vals = get_value_distribution_stats(value_distribution)
 		write_stat_to_csv(stat_vals, stat_id, csv_writer)
 		# display_distributions(value_distribution, stat_id)
