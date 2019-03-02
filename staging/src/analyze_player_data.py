@@ -12,10 +12,8 @@ import csv
 # ==== Output Files =====
 CURRENT_FILE_DIR = 'os.path.dirname(os.path.realpath(__file__))'
 DATA_DIR = '../../data'
-FILENAME = 'qb_result_info.csv'
-OUTPUT_FILE = os.path.join(DATA_DIR, FILENAME)
 DATABASE_FILENAME = 'nfl_road_statistics.db'
-DATABASE_PATH = os.path.join(DATA_DIR, DATABASE_FILENAME)
+DATABASE_PATH = os.path.join(DATA_DIR, 'raw', DATABASE_FILENAME)
 conn = sqlite3.connect(DATABASE_PATH)
 print('OPENED CONNECTION')
 
@@ -33,8 +31,14 @@ def _get_2_sample_t_results(value_distribution):
 
 
 # ==== Query QB Statistics =====
-def get_sql_statement(key_value_dict):
-	statement = '''SELECT * FROM qb_statistics'''
+def get_sql_statement(key_value_dict, data_type):
+	table = 'passing_statistics'
+	if data_type == 'rushing':
+		table = 'rushing_statistics'
+	elif data_type == 'receiving':
+		table = 'receiving_statistics'
+
+	statement = '''SELECT * FROM %s''' % table
 	if len(key_value_dict) > 0:
 		statement += ' WHERE'
 		for key in key_value_dict:
@@ -47,25 +51,25 @@ def get_sql_statement(key_value_dict):
 	return statement + ';'
 
 
-def get_road_qb_games(key_value_dict):
+def get_road_games(key_value_dict, data_type):
 	key_value_dict['GAME_LOCATION'] = {
 		'value': '@',
 		'operation': '='
 	}
 
-	statement = get_sql_statement(key_value_dict)
+	statement = get_sql_statement(key_value_dict, data_type)
 
 	road_qb_games = pd.read_sql_query(statement, conn)
 	print('Road QB shape: ' + str(road_qb_games.shape))
 	return road_qb_games
 
 
-def get_home_qb_games(key_value_dict):
+def get_home_games(key_value_dict, data_type):
 	key_value_dict['GAME_LOCATION'] = {
 		'value': '',
 		'operation': '='
 	}
-	statement = get_sql_statement(key_value_dict)
+	statement = get_sql_statement(key_value_dict, data_type)
 
 	home_qb_games = pd.read_sql_query(statement, conn)
 	print('Home QB shape: ' + str(home_qb_games.shape))
@@ -102,20 +106,6 @@ def display_distributions(value_distribution, stat_id):
 	plt.legend(loc='upper right')
 	plt.show()
 
-
-# ==== Organize Inputs =====
-def get_key_value_dict():
-	return {
-	'PASS_ATTEMPTS': {
-	'value': 10,
-	'operation': '>='
-	},
-	# 'YEAR': {
-	# 'value': 2018,
-	# 'operation': '='
-	# }
-	}
-
 # ==== Write Results =====
 def write_query_info_to_csv(csv_writer):
 	print('Writing Query Info')
@@ -135,11 +125,42 @@ def write_stat_to_csv(stat_vals, stat_id, csv_writer):
 	csv_writer.writerow(stat_row)
 
 
+# ==== Organize Inputs =====
+# CHANGE HERE
+AUTOMATICALLY_OVERWRITE = False
+DATA_TYPE = 'passing'
+
+def get_key_value_dict():
+	return {
+	'PASS_ATTEMPTS': {
+	'value': 10,
+	'operation': '>='
+	},
+	'YEAR': {
+	'value': 2018,
+	'operation': '='
+	}
+	}
+
+
+def get_filename(key_value_dict):
+	type_file_dir = os.path.join(DATA_DIR, 'interim', DATA_TYPE)
+	filename = ''
+	for key in key_value_dict:
+		filename += key + '_'
+		filename += key_value_dict[key] + '_'
+	return filename[:-1] + '.csv'
+
+
 if __name__ == '__main__':
-	road_qb_games = get_road_qb_games(get_key_value_dict())
-	home_qb_games = get_home_qb_games(get_key_value_dict())
+	kvd = get_key_value_dict()
+	output_file = get_filename(kvd)
+	if os.path.is_file(output_file) and not AUTOMATICALLY_OVERWRITE:
+		raise Exception('File already exists')
+	road_qb_games = get_road_games(get_key_value_dict(), DATA_TYPE)
+	home_qb_games = get_home_games(get_key_value_dict(), DATA_TYPE)
 	qb_stat_to_sql = get_qb_stat_ids_to_sql()
-	csv_file = open(OUTPUT_FILE, 'a')
+	csv_file = open(output_file, 'w')
 	csv_writer = csv.writer(csv_file)
 	write_query_info_to_csv(csv_writer)
 	for stat_id in get_passing_stat_ids():

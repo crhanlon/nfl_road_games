@@ -11,7 +11,7 @@ from constant_values import get_general_stat_ids, get_type_dict, id_2_col, get_q
 CURRENT_FILE_DIR = 'os.path.dirname(os.path.realpath(__file__))'
 DATA_DIR = '../../data'
 DATABASE_FILENAME = 'nfl_road_statistics.db'
-DATABASE_PATH = os.path.join(DATA_DIR, DATABASE_FILENAME)
+DATABASE_PATH = os.path.join(DATA_DIR, 'raw', DATABASE_FILENAME)
 conn = sqlite3.connect(DATABASE_PATH)
 print('OPENED CONNECTION')
 
