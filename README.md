@@ -11,4 +11,4 @@ Navigate to the staging/src folder
 Run ```./setup_data.sh```
 
 Now the data folder is set up, with the database initialized.  Running
-```python3 ScrapePlayerData.py``` will ingest the career gamelogs for all players who threw a pass in from 2008-2018.  This can be changed in the main function of the file.
+```python3 ScrapePlayerData.py``` will ingest the career gamelogs for all players who had a pass attempt, rush attempt, or target in 2018.  Changing the year_list in the main function will lead to ingesting other years as well.
