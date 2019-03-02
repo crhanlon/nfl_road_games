@@ -5,6 +5,7 @@ import numpy as np
 import os
 import sqlite3
 from constant_values import get_general_stat_ids, get_type_dict, id_2_col, get_qb_sql_cols, get_passing_stat_ids, create_passing_table, get_rushing_stat_ids, get_rushing_sql_cols, create_rushing_table, get_receiving_stat_ids, get_receiving_sql_cols, create_receiving_table
+import time
 
 
 # ==== Output Files =====
@@ -308,6 +309,7 @@ def get_url_list_for_years(year_list):
 
 
 if __name__ == '__main__':
+	st = time.time()
 	initialize_values(drop_tables=True)
 	# year_list = [2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018]
 	year_list = [2018]
@@ -318,4 +320,5 @@ if __name__ == '__main__':
 		url_list = get_url_list_from_year(year, existing_url_list)
 		print(len(url_list))
 		scrape_player_list(url_list)
+	print('Time to Scrape: ' + str(time.time() - st))
 
