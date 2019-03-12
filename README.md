@@ -15,27 +15,56 @@ Now the data folder is set up, with the database initialized.  Running
 
 With the database set up, you can now analyze the results.  In the analyze_player_data.py function, there is a section to change queries.
 
-```# ==== Organize Inputs =====
+```python
+# ==== Organize Inputs =====
 # CHANGE HERE
 AUTOMATICALLY_OVERWRITE = False
 DATA_TYPE = 'passing'
 
-def get_key_value_dict():
-	return {
-	'PASS_ATTEMPTS': {
-	'value': 10,
-	'operation': '>='
-	},
-	'YEAR': {
-	'value': 2018,
-	'operation': '='
-	}
-	}
+def get_key_value_dict_list():
+	l = [
+		{
+			'PASS_ATTEMPTS': {
+				'value': 10,
+				'operation': '>='
+			},
+			'YEAR': {
+				'value': 2008,
+				'operation': '>='
+			}
+		}
+	]
+	for i in range(2008, 2019):
+		l.append({
+				'PASS_ATTEMPTS': {
+					'value': 10,
+					'operation': '>='
+				},
+				'YEAR': {
+					'value': i,
+					'operation': '='
+				}
+			})
+
+	return l
   ```
 The AUTOMATICALLY_OVERWRITE variable will overwrite any existing file with the same parameters if set to True, and will raise an exception if set to False.
 
 The DATA_TYPE variable sets what table you are querying.  ```'passing'``` will query passing_statistics, ```'rushing'``` will query rushing_statistics, and ```'receiving'``` will query receiving_statistics.
 
-The get_key_value_dict() function serves to return a dictionary with your desired SQL query parameters (using the DATA_TYPE variable as well.  The above settings will give the SQL command
+The get_key_value_dict_list() function serves to return a list of dictionaries, where each dictionary represents your desired SQL query parameters (using the DATA_TYPE variable as well).  The above settings will give the SQL commands
 
-```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2018;```
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR >= 2008;```sql
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2008;```sql
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2009;```sql
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2010;```sql
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2011;```sql
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2012;```sql
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2013;```sql
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2014;```sql
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2015;```sql
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2016;```sql
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2017;```sql
+```SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2018;```sql
+
+Note: The YEAR variable is representative of the season, not the date.  So YEAR = 2018 will contain the Super Bowl that took place in 2019, not the Super Bowl that took place in 2018.
