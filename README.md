@@ -10,9 +10,13 @@ Run ```git clone https://github.com/crhanlon/nfl_road_games.git```
 Navigate to the staging/src folder
 Run ```./setup_data.sh```
 
+## Data Ingestions
 Now the data folder is set up, with the database initialized.  Running
-```python3 scrape_player_data.py``` will ingest the career gamelogs for all players who had a pass attempt, rush attempt, or target in 2018.  Changing the year_list in the main function will lead to ingesting other years as well.
+```python3 scrape_player_data.py``` will ingest the career gamelogs for all players who had a pass attempt, rush attempt, or target from 2008-2018.  Changing the year_list in the main function will lead to ingesting other years as well.
 
+Note, this includes games from before 2008, but there will be players who played in those years who did not have their data ingested.  This is due to to the method of consuming player career logs, as opposed to every player's game data for a year.
+
+## Data Analysis
 With the database set up, you can now analyze the results.  In the analyze_player_data.py function, there is a section to change queries.
 
 ```python
@@ -48,11 +52,11 @@ def get_key_value_dict_list():
 
 	return l
   ```
-The AUTOMATICALLY_OVERWRITE variable will overwrite any existing file with the same parameters if set to True, and will raise an exception if set to False.
+The ```AUTOMATICALLY_OVERWRITE``` variable will overwrite any existing file with the same parameters if set to True, and will raise an exception if set to False.
 
-The DATA_TYPE variable sets what table you are querying.  ```'passing'``` will query passing_statistics, ```'rushing'``` will query rushing_statistics, and ```'receiving'``` will query receiving_statistics.
+The ```DATA_TYPE``` variable sets what table you are querying.  ```'passing'``` will query passing_statistics, ```'rushing'``` will query rushing_statistics, and ```'receiving'``` will query receiving_statistics.
 
-The get_key_value_dict_list() function serves to return a list of dictionaries, where each dictionary represents your desired SQL query parameters (using the DATA_TYPE variable as well).  The above settings will give the SQL commands
+The ```get_key_value_dict_list()``` function serves to return a list of dictionaries, where each dictionary represents your desired SQL query parameters (using the ```DATA_TYPE``` variable as well).  The above settings will give the SQL commands
 
 ```sql
 SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR >= 2008;
