@@ -55,28 +55,20 @@ The DATA_TYPE variable sets what table you are querying.  ```'passing'``` will q
 The get_key_value_dict_list() function serves to return a list of dictionaries, where each dictionary represents your desired SQL query parameters (using the DATA_TYPE variable as well).  The above settings will give the SQL commands
 
 ```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR >= 2008;```
-```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2008;```
-```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2009;```
-```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2010;```
-```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2011;```
-```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2012;```
-```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2013;```
-```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2014;```
-```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2015;```
-```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2016;```
-```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2017;```
-```sql
-SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2018;```
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR >= 2008;
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2008;
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2009;
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2010;
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2011;
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2012;
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2013;
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2014;
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2015;
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2016;
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2017;
+SELECT * FROM passing_statistics WHERE PASS_ATTEMPTS >= 10 AND YEAR = 2018;
+```
 
 Note: The YEAR variable is representative of the season, not the date.  So YEAR = 2018 will contain the Super Bowl that took place in 2019, not the Super Bowl that took place in 2018.
+
+After running the script having set these values, you should now have the yearly data for all statistics from 2008-2018, as well as the totals over those years.
