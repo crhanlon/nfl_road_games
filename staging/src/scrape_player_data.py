@@ -236,7 +236,6 @@ def scrapePlayerGameLogs(url):
 	pageText = page.text
 	doc = lh.fromstring(pageText)
 	pos = get_player_position(doc)
-	print(pos)
 	player_name = get_player_name(doc)
 	player_postion = get_player_position(doc)
 	tr_elements = doc.xpath('//tr')
@@ -311,14 +310,15 @@ def get_url_list_for_years(year_list):
 if __name__ == '__main__':
 	st = time.time()
 	initialize_values(drop_tables=True)
-	# year_list = [2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018]
-	year_list = [2018]
+	year_list = [2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018]
+	# year_list = [2018]
 	year_url_list = get_url_list_for_years(year_list)
 	for year in year_url_list:
 		print(year)
 		existing_url_list = get_existing_url_list()
 		url_list = get_url_list_from_year(year, existing_url_list)
 		print(len(url_list))
+		print(url_list)
 		scrape_player_list(url_list)
 	print('Time to Scrape: ' + str(time.time() - st))
 

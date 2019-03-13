@@ -3,7 +3,7 @@ import numpy as np
 import os
 import sqlite3
 import math
-from constant_values import get_passing_stat_ids, get_rushing_stat_ids, get_receiving_stat_ids, get_general_stat_ids, id_2_col
+from constant_values import get_passing_stat_ids, get_rushing_stat_ids, get_receiving_stat_ids, get_general_stat_ids, id_2_col, operation_2_str
 from scipy import stats
 from matplotlib import pyplot as plt
 import csv
@@ -141,24 +141,35 @@ def write_stat_to_csv(stat_vals, stat_id, csv_writer):
 
 # ==== Organize Inputs =====
 # CHANGE HERE
-AUTOMATICALLY_OVERWRITE = False
+AUTOMATICALLY_OVERWRITE = True
 DATA_TYPE = 'passing'
 
-def get_key_value_dict():
-	return {
-	# 'RUSH_ATTEMPTS': {
-	# 'value': 5,
-	# 'operation': '>='
-	# },
-	'PASS_ATTEMPTS': {
-	'value': 10,
-	'operation': '>='
-	},
-	'YEAR': {
-	'value': 2018,
-	'operation': '='
-	}
-	}
+def get_key_value_dict_list():
+	l = [
+			{
+				'PASS_ATTEMPTS': {
+					'value': 10,
+					'operation': '>='
+				},
+				'YEAR': {
+					'value': 2008,
+					'operation': '>='
+				}
+			}
+		]
+	for i in range(2008, 2019):
+		l.append({
+					'PASS_ATTEMPTS': {
+					'value': 10,
+					'operation': '>='
+					},
+					'YEAR': {
+						'value': i,
+						'operation': '='
+					}
+				})
+
+	return l
 
 
 def get_filename(key_value_dict):
@@ -166,7 +177,7 @@ def get_filename(key_value_dict):
 	filename = DATA_TYPE + '_'
 	for key in key_value_dict:
 		filename += key + '_'
-		filename += str(key_value_dict[key]['value']) + '_'
+		filename += operation_2_str(key_value_dict[key]['operation']) + '_' + str(key_value_dict[key]['value']) + '_'
 	return os.path.join(type_file_dir, filename[:-1] + '.csv')
 
 
@@ -186,26 +197,25 @@ def get_stat_ids():
 
 if __name__ == '__main__':
 
-	kvd = get_key_value_dict()
-	output_file = get_filename(kvd)
-	if os.path.isfile(output_file) and not AUTOMATICALLY_OVERWRITE:
-		raise Exception('File already exists')
-	road_qb_games = get_road_games(get_key_value_dict(), DATA_TYPE)
-	home_qb_games = get_home_games(get_key_value_dict(), DATA_TYPE)
-	stat_id_2_sql = id_2_col()
-	csv_file = open(output_file, 'w')
-	csv_writer = csv.writer(csv_file)
-	write_query_info_to_csv(csv_writer)
-	stat_id_list = get_stat_ids()
-	for stat_id in stat_id_list:
-		value_distribution = get_value_distributions(road_qb_games, home_qb_games, stat_id_2_sql[stat_id])
-		if type(value_distribution['home_values'][0]) == str:
-			continue
-		stat_vals = get_value_distribution_stats(value_distribution)
-		write_stat_to_csv(stat_vals, stat_id, csv_writer)
-		# display_distributions(value_distribution, stat_id)
+	for kvd in get_key_value_dict_list():
+		output_file = get_filename(kvd)
+		if os.path.isfile(output_file) and not AUTOMATICALLY_OVERWRITE:
+			raise Exception('File already exists')
+		road_qb_games = get_road_games(kvd.copy(), DATA_TYPE)
+		home_qb_games = get_home_games(kvd.copy(), DATA_TYPE)
+		stat_id_2_sql = id_2_col()
+		csv_file = open(output_file, 'w')
+		csv_writer = csv.writer(csv_file)
+		write_query_info_to_csv(csv_writer)
+		stat_id_list = get_stat_ids()
+		for stat_id in stat_id_list:
+			value_distribution = get_value_distributions(road_qb_games, home_qb_games, stat_id_2_sql[stat_id])
+			if type(value_distribution['home_values'][0]) == str:
+				continue
+			stat_vals = get_value_distribution_stats(value_distribution)
+			write_stat_to_csv(stat_vals, stat_id, csv_writer)
 
-	csv_writer.writerow([])
-	csv_writer.writerow([])
-	csv_file.close()
+		csv_writer.writerow([])
+		csv_writer.writerow([])
+		csv_file.close()
 

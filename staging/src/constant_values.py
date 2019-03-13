@@ -265,3 +265,13 @@ def create_receiving_table(conn):
 	print('Created Rushing Table')
 
 
+def operation_2_str():
+	return {
+	'>': 'greater',
+	'>=': 'greaterEq',
+	'<': 'less',
+	'<=': 'lessEq',
+	'=': 'equal'
+	}
+
+
