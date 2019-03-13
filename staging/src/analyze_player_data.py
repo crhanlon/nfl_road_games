@@ -20,7 +20,7 @@ print('OPENED CONNECTION')
 
 
 # ==== Statistic Calculations =====
-STAT_KEYS = ['home_mean', 'road_mean', 'home_std', 'road_std', 't_stat', 'p_val', 'difference']
+STAT_KEYS = ['home_mean', 'road_mean', 'home_std', 'road_std', 'home_count', 'road_count', 't_stat', 'p_val', 'difference']
 def _get_means(value_distribution):
 	return [np.mean(value_distribution['home_values']), np.mean(value_distribution['road_values'])]
 
@@ -107,6 +107,8 @@ def get_value_distribution_stats(value_distribution):
 	'road_mean': _get_means(value_dist_copy)[1],
 	'home_std': _get_stds(value_dist_copy)[0],
 	'road_std': _get_stds(value_dist_copy)[1],
+	'home_count': len(value_dist_copy['home_values']),
+	'road_count': len(value_dist_copy['road_values']),
 	't_stat': t_stat,
 	'p_val': pval,
 	'difference': _get_means(value_dist_copy)[0] - _get_means(value_dist_copy)[1]
@@ -123,34 +125,40 @@ def display_distributions(value_distribution, stat_id):
 	plt.show()
 
 # ==== Write Results =====
-def write_query_info_to_csv(csv_writer):
-	key_value_dict = get_key_value_dict()
+def write_query_info_to_csv(csv_writer, key_value_dict):
 	for k in key_value_dict:
 		csv_writer.writerow([k, key_value_dict[k]['operation'], key_value_dict[k]['value']])
 	header_row = ['stat_id']
 	header_row.extend(STAT_KEYS)
+	header_row.append('stat_type')
 	csv_writer.writerow([])
 	csv_writer.writerow(header_row)
 
 
 def write_stat_to_csv(stat_vals, stat_id, csv_writer):
+	print(stat_id)
+	if stat_id in get_passing_stat_ids():
+		stat_type = 'passing'
+	elif stat_id in get_rushing_stat_ids():
+		stat_type = 'rushing'
+	elif stat_id in get_receiving_stat_ids():
+		stat_type = 'receiving'
+	else:
+		raise Exception('Invalid Stat: ' + stat_id)
 	stat_row = [stat_vals[key] for key in STAT_KEYS]
 	stat_row.insert(0, stat_id)
+	stat_row.append(stat_type)
 	csv_writer.writerow(stat_row)
 
 
 # ==== Organize Inputs =====
 # CHANGE HERE
 AUTOMATICALLY_OVERWRITE = True
-DATA_TYPE = 'passing'
+DATA_TYPE = 'receiving'
 
 def get_key_value_dict_list():
 	l = [
 			{
-				'PASS_ATTEMPTS': {
-					'value': 10,
-					'operation': '>='
-				},
 				'YEAR': {
 					'value': 2008,
 					'operation': '>='
@@ -159,10 +167,6 @@ def get_key_value_dict_list():
 		]
 	for i in range(2008, 2019):
 		l.append({
-					'PASS_ATTEMPTS': {
-					'value': 10,
-					'operation': '>='
-					},
 					'YEAR': {
 						'value': i,
 						'operation': '='
@@ -177,7 +181,7 @@ def get_filename(key_value_dict):
 	filename = DATA_TYPE + '_'
 	for key in key_value_dict:
 		filename += key + '_'
-		filename += operation_2_str(key_value_dict[key]['operation']) + '_' + str(key_value_dict[key]['value']) + '_'
+		filename += operation_2_str()[key_value_dict[key]['operation']] + '_' + str(key_value_dict[key]['value']) + '_'
 	return os.path.join(type_file_dir, filename[:-1] + '.csv')
 
 
@@ -206,7 +210,7 @@ if __name__ == '__main__':
 		stat_id_2_sql = id_2_col()
 		csv_file = open(output_file, 'w')
 		csv_writer = csv.writer(csv_file)
-		write_query_info_to_csv(csv_writer)
+		write_query_info_to_csv(csv_writer, kvd.copy())
 		stat_id_list = get_stat_ids()
 		for stat_id in stat_id_list:
 			value_distribution = get_value_distributions(road_qb_games, home_qb_games, stat_id_2_sql[stat_id])
