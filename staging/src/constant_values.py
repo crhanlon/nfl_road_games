@@ -265,6 +265,7 @@ def create_receiving_table(conn):
 	print('Created Rushing Table')
 
 
+# ==== MISC
 def operation_2_str():
 	return {
 	'>': 'greater',
@@ -273,5 +274,14 @@ def operation_2_str():
 	'<=': 'lessEq',
 	'=': 'equal'
 	}
+
+
+def year_2_idx():
+	d = {}
+	for i in range(2, 13):
+		d[str(i + 2006)] = i
+	d['all'] = 13
+	return d
+
 
 
