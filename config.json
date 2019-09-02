@@ -1,0 +1,6 @@
+{
+  "sql": {
+    "db_dir": "../../data/raw",
+    "db_name": "nfl_road_statistics.db"
+  }
+}
