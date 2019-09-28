@@ -1,6 +1,6 @@
 {
   "sql": {
-    "db_dir": "../../data/raw",
+    "db_dir": "/Users/crhanlon/Documents/coding_projects/NFL_Road_Games/data/raw",
     "db_name": "nfl_road_statistics.db"
   }
 }
